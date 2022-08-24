@@ -8,32 +8,67 @@ from models import setup_db, Question, Category
 
 QUESTIONS_PER_PAGE = 10
 
+def paginate_questions(request, selection):
+    page = request.args.get("page", 1, type=int)
+    start = (page - 1) * QUESTIONS_PER_PAGE
+    end = start + QUESTIONS_PER_PAGE
+
+    questions = [question.format() for question in selection]
+    current_questions = questions[start:end]
+
+    return current_questions
+
 def create_app(test_config=None):
     # create and configure the app
     app = Flask(__name__)
     setup_db(app)
+    CORS(app)
 
-    """
-    @TODO: Set up CORS. Allow '*' for origins. Delete the sample route after completing the TODOs
-    """
+    #CORS headers
+    @app.after_request
+    def after_request(response):
+        response.headers.add("Access-Control-Allow-Headers", "Content-Type,Authorization,true")
+        response.headers.add("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS,PATCH")
 
-    """
-    @TODO: Use the after_request decorator to set Access-Control-Allow
-    """
+        return response
+    #Endpoint to handle get request for all available categories 
+    @app.route('/categories', methods=["GET"]) 
+    def retrieve_categories():
+        categories_list = Category.query.order_by(Category.id).all()
 
-    """
-    @TODO:
-    Create an endpoint to handle GET requests
-    for all available categories.
-    """
+        if len(categories_list) == 0:
+            abort(404)
+
+        return jsonify(
+            {
+                'succes': True,
+                'categories': {category.id: category.type for category in categories_list}
+            }
+        ), 200
+
+    #Endpoint to handle GET requests for questions
+    @app.route("/questions")
+    def retrieve_questions():
+        categories_list = Category.query.order_by(Category.id).all()
+        selection = Question.query.order_by(Question.id).all()
+        current_questions = paginate_questions(request, selection)
+
+        if len(current_questions) == 0:
+            abort(404) 
+
+        return jsonify(
+            {
+                "success": True,
+                "questions": current_questions,
+                "total_questions": len(Question.query.all()),
+                "categories": {category.id: category.type for category in categories_list},
+                "current_category": None
+            }
+        ), 200 
+           
 
 
-    """
-    @TODO:
-    Create an endpoint to handle GET requests for questions,
-    including pagination (every 10 questions).
-    This endpoint should return a list of questions,
-    number of total questions, current category, categories.
+    """.
 
     TEST: At this point, when you start the application
     you should see questions and categories generated,

@@ -48,6 +48,45 @@ class TriviaTestCase(unittest.TestCase):
         self.assertEqual(data["success"], False)
         self.assertEqual(data["message"], "resource not found")
 
+    def test_delete_question(self):
+        res = self.client().delete("/questions/8")
+        data = json.loads(res.data)
+
+        question = Question.query.filter(Question.id == 8).one_or_none()
+
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(data["success"], True)
+        self.assertEqual(data["deleted"], 8)
+        self.assertEqual(data["total_questions"])
+        self.assertEqual(len(data["questions"]))
+        self.assertEqual(question, None)
+
+    def test_422_if_question_does_exist(self):
+        res = self.client().delete("/questions/100")
+        data = json.loads(res.data)
+
+        self.assertEqual(res.status_code, 422)
+        self.assertEqual(data["success"], False)
+        self.assertEqual(data["mesaage"], "Unprocessable Entity")
+
+    def test_create_new_question(self):
+        res = self.client().post("/questions", json=self.new_question)
+        data = json.loads(res.data)
+
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(data["success"], True)
+        self.assertEqual(data["created"])
+        self.assertEqual(len(data["questions"]))
+
+    def test_405_if_book_creation_is_not_allowed(self):
+        res = self.client().post("/questions/67", json=self.new_question)
+        data = json.loads(res.data)
+
+        self.assertEqual(res.status_code, 405)
+        self.assertEqual(data["success"], False)
+        self.assertEqual(data["message"], "method not allowed")
+
+
    
         
 
